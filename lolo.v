@@ -49,12 +49,6 @@ default:out1<=in4;
 endcase
 end
 endmodule
-
-
-
-
-
-
 module Alu (a,b,c,aluctr,aluout,zero,);
 input [31:0] b,a;
 input [3:0] aluctr;
@@ -172,7 +166,6 @@ output reg [31:0] instruction;
 input  wire [31:0] address;
 input clk;
 reg [31:0] rom [0:1023];
-integer file  ;
 
 initial
 begin
@@ -181,7 +174,9 @@ end
 
 always @ (posedge clk)
 begin
+
 instruction <= rom [address];
+
 end
  
 
@@ -209,7 +204,7 @@ input clk;
 
 output reg Branch,MemRead,MemWrite,ALUSrc,RegWrite,Jump;
 output reg [1:0] RegDst,MemtoReg;
-output reg [1:0] ALUOp;
+output reg [2:0] ALUOp;
 
 parameter R_format = 6'b000000;
 parameter Addi = 6'b001000;
@@ -251,7 +246,7 @@ R_format : begin
 	MemWrite <=1'b0 ;
 	ALUSrc <= 1'b0 ;
 	RegWrite <= 1'b1 ;
-	ALUOp <= 2'b10 ;
+	ALUOp <= 3'b010 ;
 	Jump <= 1'b0 ;
 	end
 
@@ -264,7 +259,7 @@ Addi : begin
 	MemWrite <=1'b0 ;
 	ALUSrc <= 1'b1 ;
 	RegWrite <= 1'b1 ;
-	ALUOp <= 2'b00 ;
+	ALUOp <= 3'b000 ;
 	 Jump <= 1'b0 ;
 	end
 
@@ -290,7 +285,7 @@ Beq : begin
 	MemWrite<=1'b0 ;
 	ALUSrc<=1'b0 ;
 	RegWrite<=1'b0 ;
-	ALUOp<=2'b01 ;
+	ALUOp<=3'b001 ;
 	Jump<=1'b0 ;
 	end
 
@@ -317,7 +312,7 @@ J : begin
 	ALUSrc<=1'bx ;
 	RegWrite<=1'b0 ;
 	Jump<=1'b1 ;
-	ALUOp<=2'bxx ;
+	ALUOp<=3'bxxx ;
 	Jump<=1'b1 ;
 	end
 
@@ -331,7 +326,7 @@ begin
 	MemWrite<=1'b0 ;
 	ALUSrc<=1'bx ;
 	RegWrite<=1'b1 ;
-	ALUOp<=2'bxx ;
+	ALUOp<=3'bxxx ;
 	Jump<=1'b1 ;
 	end
 
@@ -370,7 +365,7 @@ Lui : begin
 	MemWrite<=1'b0 ;
 	ALUSrc<=1'b1 ;
 	RegWrite<=1'b1 ;
-	ALUOp<=2'b11 ;
+	ALUOp<=3'b011 ;
 	Jump<=1'b0 ;
 	end
 
@@ -383,7 +378,7 @@ Lw : begin
 	MemWrite<=1'b0 ;
 	ALUSrc<=1'b1 ;
 	RegWrite<=1'b1 ;
-	ALUOp<=2'b00 ;
+	ALUOp<=3'b000 ;
 	Jump<=1'b0 ;
 	end
 
@@ -396,7 +391,7 @@ Ori : begin
 	MemWrite<=1'b0 ;
 	ALUSrc<=1'b1 ;
 	RegWrite<=1'b1 ;
-	ALUOp<=2'b11 ;//need this added in 
+	ALUOp<=3'b100 ;//need this added in 
 	Jump<=1'b0 ;
 	end
 
@@ -448,7 +443,7 @@ Sw : begin
 	MemWrite<=1'b1 ;
 	ALUSrc<=1'b1 ;
 	RegWrite<=1'b0 ;
-	ALUOp<=2'b00 ;
+	ALUOp<=3'b000 ;
 	Jump<=1'b0 ;
 	end
 
@@ -497,7 +492,7 @@ endmodule
 
 module alucontrol (func,aluop,out,clk,muxcontrol);
 input [5:0] func ;
-input [1:0] aluop;
+input [2:0] aluop;
 input clk;
 output reg muxcontrol;
 output reg [3:0] out;
@@ -508,11 +503,11 @@ begin
 
 case (aluop)
 
-2'b00 : begin out <= 4'b0010 ; muxcontrol <= 1'b1; end// hy3ml add lel load aw store word
-2'b01 : begin out <= 4'b0110 ; muxcontrol <= 1'b1; end // hy3ml subtract for branch equal
-2'b00 : begin out <= 4'b0010 ;muxcontrol <= 1'b1; end // h3ml addi  
-2'b11 : begin out <= 4'b1111 ;muxcontrol <= 1'b1;end // add 3shan bta3t lui
-2'b10 : // y3ni R-type
+3'b000 : begin out <= 4'b0010 ; muxcontrol <= 1'b1; end// hy3ml add lel load aw store word and addi
+3'b001 : begin out <= 4'b0110 ; muxcontrol <= 1'b1; end // hy3ml subtract for branch equal
+3'b011 : begin out <= 4'b1111 ;muxcontrol <= 1'b1;end // add 3shan bta3t lui
+3'b100 : begin out <=4'b0001; muxcontrol <= 1'b1;end // for ori
+3'b010 : // y3ni R-type
 case (func)
 6'b100000 :begin out <= 4'b0010 ;muxcontrol <= 1'b1; end // hy3ml add 
 6'b100010 : begin out <= 4'b0110 ;muxcontrol <= 1'b1; end // hy3ml subtract
@@ -520,8 +515,8 @@ case (func)
 6'b100101 : begin out <= 4'b0001 ;muxcontrol <= 1'b1; end // hy3ml or
 6'b101010 : begin out <= 4'b0111 ;muxcontrol <= 1'b1; end// hy3ml set on less than
 6'b000000 : begin out <= 4'b1110 ;muxcontrol <= 1'b1; end // hy3ml sll
-6'b001000 :  begin muxcontrol <= 1'b0; end // for the jump register
-
+6'b001000 : begin muxcontrol <= 1'b0; end // for the jump register
+//6'b100110 : begin out <= 4'b0001 ;muxcontrol <= 1'b1; end // hy3ml or
 endcase
 endcase
 
@@ -581,9 +576,9 @@ wire [31:0] MemtoRegMux_out;
 wire ALUSrc;
 wire [31:0]ALUSrcMux_Output ; // e7na 3dlna hna
 wire [3:0] ALUctr_output ;
-wire [1:0] AluOp;
+wire [2:0] AluOp;
 wire RegWrite;
-assign Jump_Address = 32'h00002222; //{PC_Plus_4[31:28],Jump_Address28};
+assign Jump_Address = {PC_Plus_4[31:28],Jump_Address28};
 wire [4:0] Write_Reg;
 wire clock;
 
